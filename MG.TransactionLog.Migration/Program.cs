@@ -101,7 +101,7 @@ namespace MG.TransactionLog.Migration
 								try
 								{
 									//Console.WriteLine($"ADDITING - ID:{row.Id}, CreateDate:{row.CreateDate}, TenantTransactionId:{row.TenantTransactionId}");
-									log.Information("{@Payload}", row.Map());
+									log.Information(row.CreateDate, "{@Payload}", row.Map());
 									lastFileId = row.Id;
 									uploadedRows++;
 								}
