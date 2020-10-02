@@ -71,7 +71,7 @@ namespace MG.TransactionLog.Migration
 				// totalFiles
 				using (ApplicationDbContext context = new ApplicationDbContext(options))
 				{
-					totalFiles = (context.TransactionLogs.ToList() as ICollection<DAL.Models.TransactionLog>).Count;
+					totalFiles = context.TransactionLogs.Count();
 				}
 
 				#region For Testing
