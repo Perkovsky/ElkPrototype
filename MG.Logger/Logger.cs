@@ -1,51 +1,55 @@
-﻿using Microsoft.Extensions.Configuration;
-using Serilog;
+﻿using Serilog;
 using Serilog.Context;
-using Serilog.Core;
 using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
 using System;
-using System.Reflection;
 
 namespace MG.Logger
 {
 	public class Logger
 	{
-		private readonly IConfigurationRoot _config;
+		//private readonly LoggerConfiguration _config;
+		private readonly string _elasticsearchEndpoint;
 
 		public Logger()
 		{
-			var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-			_config = new ConfigurationBuilder()
-				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-				.AddJsonFile($"appsettings.{environment}.json", optional: true)
-				.Build();
+			_elasticsearchEndpoint = "http://localhost:9200";
+			Log.Logger = GetLoggerConfiguration(_elasticsearchEndpoint).CreateLogger();
 		}
 
 		#region Private Methods
 
-		//private static void ConfigureLogging()
-		//{
-		//	var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-		//	var configuration = new ConfigurationBuilder()
-		//		.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-		//		.AddJsonFile($"appsettings.{environment}.json", optional: true)
-		//		.Build();
+		private LoggerConfiguration GetLoggerConfiguration(string elasticsearchEndpoint)
+		{
+			var outputTemplate = "{Timestamp:o} [{Level:u3}] {Message}{NewLine}{Exception}";
 
-		//	Log.Logger = new LoggerConfiguration()
-		//		.ReadFrom.Configuration(configuration)
-		//		.CreateLogger();
-
-		//}
+			return new LoggerConfiguration()
+				.MinimumLevel.Information()
+				.Enrich.FromLogContext()
+				.Enrich.WithExceptionDetails()
+				.WriteTo.Console(
+					outputTemplate: outputTemplate
+				)
+				.WriteTo.File(
+					path: @"MG.Logger.Logs\log.txt",
+					outputTemplate: outputTemplate
+				)
+				.WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(elasticsearchEndpoint))
+				{
+					AutoRegisterTemplate = true,
+					//AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv7
+					IndexFormat = "mg-logger-index-{0:yyyy.MM}",
+					EmitEventFailure = EmitEventFailureHandling.WriteToSelfLog,
+					RegisterTemplateFailure = RegisterTemplateRecovery.IndexAnyway
+				});
+		}
 
 		#endregion
 
 		public void Info(LogType type, string messageTemplate)
 		{
 			using (LogContext.PushProperty("LogType", type.ToString()))
-			using (var log = new LoggerConfiguration()
-				.ReadFrom.Configuration(_config)
-				.CreateLogger())
+			using (var log = GetLoggerConfiguration(_elasticsearchEndpoint).CreateLogger())
 			{
 				log.Information(messageTemplate);
 			}
@@ -54,31 +58,25 @@ namespace MG.Logger
 		public void Info<T>(LogType type, string messageTemplate, T propertyValue)
 		{
 			using (LogContext.PushProperty("LogType", type.ToString()))
-			using (var log = new LoggerConfiguration()
-				.ReadFrom.Configuration(_config)
-				.CreateLogger())
+			using (var log = GetLoggerConfiguration(_elasticsearchEndpoint).CreateLogger())
 			{
-				log.Information<string>(messageTemplate, propertyValue.ToString());
+				log.Information<T>(messageTemplate, propertyValue);
 			}
 		}
 
 		public void Error<T>(string messageTemplate, T propertyValue)
 		{
-			using (var log = new LoggerConfiguration()
-				.ReadFrom.Configuration(_config)
-				.CreateLogger())
+			using (var log = GetLoggerConfiguration(_elasticsearchEndpoint).CreateLogger())
 			{
-				log.Error<string>(messageTemplate, propertyValue.ToString());
+				log.Error<T>(messageTemplate, propertyValue);
 			}
 		}
 
 		public void Error<T>(Exception exception, string messageTemplate, T propertyValue)
 		{
-			using (var log = new LoggerConfiguration()
-				.ReadFrom.Configuration(_config)
-				.CreateLogger())
+			using (var log = GetLoggerConfiguration(_elasticsearchEndpoint).CreateLogger())
 			{
-				log.Error<string>(exception, messageTemplate, propertyValue.ToString());
+				log.Error<T>(exception, messageTemplate, propertyValue);
 			}
 		}
 	}
