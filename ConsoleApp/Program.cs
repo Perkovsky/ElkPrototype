@@ -2,7 +2,6 @@
 using MG.MainLogger.Models;
 using Serilog;
 using SimpleInjector;
-using SimpleInjector.Lifestyles;
 using System;
 using System.Diagnostics;
 
@@ -28,61 +27,58 @@ namespace ConsoleApp
 			var sw = new Stopwatch();
 			sw.Start();
 
-			using (AsyncScopedLifestyle.BeginScope(_container))
+			var _logger = _container.GetInstance<IMainLogger>();
+
+			for (int i = 0; i < 20; i++)
 			{
-				var _logger = _container.GetInstance<IMainLogger>();
+				_logger.Information(i.ToString());
+			}
 
-				for (int i = 0; i < 20; i++)
+			_logger.AddSource<Program>()
+				.Information(new SystemLogStructuredLogging
 				{
-					_logger.Information(i.ToString());
-				}
+					EntityId = 25,
+					Component = "ConloseApp",
+					Created = DateTime.UtcNow,
+					Description = "System Log Test",
+					Type = "SomeLogType"
+				});
 
-				_logger.AddSource<Program>()
-					.Information(new SystemLogStructuredLogging
-					{
-						EntityId = 25,
-						Component = "ConloseApp",
-						Created = DateTime.UtcNow,
-						Description = "System Log Test",
-						Type = "SomeLogType"
-					});
-
-				_logger
-					.AddSource<Program>()
-					.AddField("EntityId", "444")
-					.AddField("EntityType", "User")
-					.Information(new TransactionLogStructuredLogging
-					{
-						CreateDate = DateTime.UtcNow,
-						TenantTransactionId = 344,
-						Message = "Transaction Log Test #1"
-					});
-
-				_logger
-					.AddField("EntityId", "555")
-					.AddField("EntityType", "User")
-					.Information(new TransactionLogStructuredLogging
-					{
-						CreateDate = DateTime.UtcNow,
-						TenantTransactionId = 2124,
-						Message = "Transaction Log Test #2"
-					});
-
-				_logger.AddSource<Program>()
-					.Information("Test source");
-
-				try
+			_logger
+				.AddSource<Program>()
+				.AddField("EntityId", "444")
+				.AddField("EntityType", "User")
+				.Information(new TransactionLogStructuredLogging
 				{
-					throw new Exception("Some bad code was executed");
-				}
-				catch (Exception ex)
+					CreateDate = DateTime.UtcNow,
+					TenantTransactionId = 344,
+					Message = "Transaction Log Test #1"
+				});
+
+			_logger
+				.AddField("EntityId", "555")
+				.AddField("EntityType", "User")
+				.Information(new TransactionLogStructuredLogging
 				{
-					_logger.Error(ex, "Error message...");
-					_logger.Error(ex.Message);
-					_logger.Fatal(ex, "Fatal message...");
-					_logger.Fatal(ex.Message);
-					_logger.Information("Test logger");
-				}
+					CreateDate = DateTime.UtcNow,
+					TenantTransactionId = 2124,
+					Message = "Transaction Log Test #2"
+				});
+
+			_logger.AddSource<Program>()
+				.Information("Test source");
+
+			try
+			{
+				throw new Exception("Some bad code was executed");
+			}
+			catch (Exception ex)
+			{
+				_logger.Error(ex, "Error message...");
+				_logger.Error(ex.Message);
+				_logger.Fatal(ex, "Fatal message...");
+				_logger.Fatal(ex.Message);
+				_logger.Information("Test logger");
 			}
 
 			sw.Stop();
@@ -90,6 +86,9 @@ namespace ConsoleApp
 			Console.WriteLine(new string('-', 20));
 			Console.WriteLine($"Spent time : {sw.Elapsed}");
 
+			Log.CloseAndFlush();
+			Console.WriteLine("Press any key...");
+			Console.ReadKey();
 		}
 	}
 }
