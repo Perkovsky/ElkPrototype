@@ -43,7 +43,7 @@ namespace MG.TransactionLog.Migration
 				});
 		}
 
-		private static void Execute(int startId, int rowsCount = 100000)
+		private static void Execute(int startId, int rowsCount, int skipItems)
 		{
 			try
 			{
@@ -61,7 +61,6 @@ namespace MG.TransactionLog.Migration
 				int uploadedRows = 0;
 				int errors = 0;
 				int lastFileId = 0;
-				int skipItems = 0;
 				int totalCurrentCount = 0;
 
 				var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
@@ -140,7 +139,7 @@ namespace MG.TransactionLog.Migration
 			{
 				Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(o =>
 				{
-					Execute(o.StartTransactionLogId, o.RowsCount);
+					Execute(o.StartTransactionLogId, o.RowsCount, o.Skip);
 				});
 			}
 			catch (Exception e)

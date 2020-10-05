@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "MG.TransactionLog.Migration": {
+      "commandName": "Project"
+    }
+  }
+}
