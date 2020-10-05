@@ -1,51 +1,95 @@
-﻿using MG.Logger;
+﻿using MG.MainLogger;
+using MG.MainLogger.Models;
+using Serilog;
+using SimpleInjector;
+using SimpleInjector.Lifestyles;
 using System;
+using System.Diagnostics;
 
 namespace ConsoleApp
 {
-	public enum EntityType
-	{
-		AuditLog, TransactionLog, JobLog
-	}
-
-	public class Payload
-	{
-		public int EntityId { get; set; }
-		public EntityType EntityType { get; set; }
-
-		public Payload(int entityId, EntityType EntityType)
-		{
-			EntityId = entityId;
-			EntityType = EntityType;
-		}
-	}
-
 	class Program
 	{
+		static readonly Container _container;
+
+		static Program()
+		{
+			var elasticsearchEndpoint = "http://localhost:9200";
+			MainLoggerConfig.ConfigureLogging(elasticsearchEndpoint);
+
+			_container = new Container();
+			_container.RegisterSingleton<ILogger>(() => Log.Logger);
+			_container.RegisterSingleton<IMainLogger, MainLogger>();
+			_container.Verify();
+		}
+
 		static void Main(string[] args)
 		{
-			var _logger = new Logger();
+			var sw = new Stopwatch();
+			sw.Start();
 
-			try
+			using (AsyncScopedLifestyle.BeginScope(_container))
 			{
-				throw new Exception("Some bad code was executed");
-			}
-			catch (Exception ex)
-			{
-				_logger.Info(LogType.Library, "Test logger");
-				//_logger.Error(ex, "An unknown error occurred on the Index action of the HomeController {type}", LogType.WindowService);
-				//_logger.Info(LogType.Library, "Test logger ID: {Id}", 345688);
-				//_logger.Info(LogType.Library, "Test logger some property: {MySomeProperty}", "just simple text");
-				//_logger.Info(LogType.WindowService, "Payload: {@Payload}", new Payload(442, EntityType.AuditLog));
-				//_logger.Info(LogType.Web, "Payload: {@Payload}", new { Fistname = "Ivan", Lastname = "Dukin", Age = 13 });
-				//_logger.Info(LogType.WindowService, "Test logger without property value");
-				//_logger.Info(LogType.Web, "Payload: {@Payload}", 3432);
-				//_logger.Info(LogType.Web, "Payload: {Payload}", 111);
-				//_logger.Info(LogType.Web, "Payload: {@Payload2}", new { TestInt = 12, Message = new { Data = "This is test" } });
-				//_logger.Info(LogType.Web, "Payload: {@Payload}", new { Message = 8881 });
+				var _logger = _container.GetInstance<IMainLogger>();
+
+				for (int i = 0; i < 20; i++)
+				{
+					_logger.Information(i.ToString());
+				}
+
+				_logger.AddSource<Program>()
+					.Information(new SystemLogStructuredLogging
+					{
+						EntityId = 25,
+						Component = "ConloseApp",
+						Created = DateTime.UtcNow,
+						Description = "System Log Test",
+						Type = "SomeLogType"
+					});
+
+				_logger
+					.AddSource<Program>()
+					.AddField("EntityId", "444")
+					.AddField("EntityType", "User")
+					.Information(new TransactionLogStructuredLogging
+					{
+						CreateDate = DateTime.UtcNow,
+						TenantTransactionId = 344,
+						Message = "Transaction Log Test #1"
+					});
+
+				_logger
+					.AddField("EntityId", "555")
+					.AddField("EntityType", "User")
+					.Information(new TransactionLogStructuredLogging
+					{
+						CreateDate = DateTime.UtcNow,
+						TenantTransactionId = 2124,
+						Message = "Transaction Log Test #2"
+					});
+
+				_logger.AddSource<Program>()
+					.Information("Test source");
+
+				try
+				{
+					throw new Exception("Some bad code was executed");
+				}
+				catch (Exception ex)
+				{
+					_logger.Error(ex, "Error message...");
+					_logger.Error(ex.Message);
+					_logger.Fatal(ex, "Fatal message...");
+					_logger.Fatal(ex.Message);
+					_logger.Information("Test logger");
+				}
 			}
 
+			sw.Stop();
 			Console.WriteLine("Done!");
+			Console.WriteLine(new string('-', 20));
+			Console.WriteLine($"Spent time : {sw.Elapsed}");
+
 		}
 	}
 }

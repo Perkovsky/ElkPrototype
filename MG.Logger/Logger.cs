@@ -38,7 +38,7 @@ namespace MG.Logger
 				{
 					AutoRegisterTemplate = true,
 					//AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv7
-					IndexFormat = "mg-logger-index-{0:yyyy.MM}",
+					IndexFormat = "mg-log-index-{0:yyyy.MM}",
 					EmitEventFailure = EmitEventFailureHandling.WriteToSelfLog,
 					RegisterTemplateFailure = RegisterTemplateRecovery.IndexAnyway
 				});
