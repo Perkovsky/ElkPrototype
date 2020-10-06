@@ -86,7 +86,7 @@ namespace ConsoleApp
 			Console.WriteLine(new string('-', 20));
 			Console.WriteLine($"Spent time : {sw.Elapsed}");
 
-			Log.CloseAndFlush();
+			//Log.CloseAndFlush();
 			Console.WriteLine("Press any key...");
 			Console.ReadKey();
 		}

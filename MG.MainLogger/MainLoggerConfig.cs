@@ -1,10 +1,10 @@
 ﻿using Serilog;
 using Serilog.Debugging;
+using Serilog.Events;
 using Serilog.Exceptions;
 using Serilog.Sinks.Elasticsearch;
 using System;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace MG.MainLogger
 {
@@ -32,26 +32,13 @@ namespace MG.MainLogger
 						AutoRegisterTemplate = true,
 						OverwriteTemplate = true,
 						DetectElasticsearchVersion = true,
-						//AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv7,
-
-						//BufferBaseFilename = $@"{BASE_LOG_FOLDER}\buffer-",
-						//SingleEventSizePostingLimit = null,
-						//BufferFileSizeLimitBytes = 1000 * 1000 * 100, // 100 MB
-						//BufferFileCountLimit = 50,
-						////BatchPostingLimit = 1,
-						////BufferBaseFilename = null,
-						////BufferFileCountLimit = 1,
-						////BatchAction = ElasticOpType.Create,
-						////QueueSizeLimit = 1,
-						////Period = TimeSpan.FromSeconds(0),
-						
 					    IndexFormat = $"mg-{name}-index-{{0:yyyy.MM}}",
 						EmitEventFailure = EmitEventFailureHandling.WriteToSelfLog,
 						RegisterTemplateFailure = RegisterTemplateRecovery.IndexAnyway
 					});
 				})
 				.WriteTo.Console(
-					//LogEventLevel.Error,
+					LogEventLevel.Error,
 					outputTemplate: outputTemplate
 				);
 		}
@@ -60,7 +47,7 @@ namespace MG.MainLogger
 		{
 			SelfLog.Enable(File.CreateText($@"{BASE_LOG_FOLDER}\errors.txt"));
 			Log.Logger = GetConfig(elasticsearchEndpoint).CreateLogger();
-			AppDomain.CurrentDomain.ProcessExit += (s, e) => Log.CloseAndFlush();
+			//AppDomain.CurrentDomain.ProcessExit += (s, e) => Log.CloseAndFlush();
 		}
 	}
 }
